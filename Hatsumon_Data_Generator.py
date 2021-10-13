@@ -83,7 +83,8 @@ class HatsumonDataGenerator:
                 labels = []
                 for edu_ans in self.dataset[study_number][question_number]["edu_ans"]:
                     ans = edu_ans["ans"]
-                    pair = question + self.bert_tokenizer.tokenizer.sep_token + model_ans + self.bert_tokenizer.tokenizer.sep_token + ans
+#                     pair = question + self.bert_tokenizer.tokenizer.sep_token + model_ans + self.bert_tokenizer.tokenizer.sep_token + ans
+                    pair = model_ans + self.bert_tokenizer.tokenizer.sep_token + ans
                     label = edu_ans["label"]
                     pairs.append(pair)
                     labels.append(label)
@@ -122,7 +123,8 @@ class HatsumonDataGenerator:
                 labels = []
                 for edu_ans in self.dataset[study_number][question_number]["edu_ans"]:
                     ans = edu_ans["ans"]
-                    pair = question + self.bert_tokenizer.tokenizer.sep_token + model_ans + self.bert_tokenizer.tokenizer.sep_token + ans
+#                     pair = question + self.bert_tokenizer.tokenizer.sep_token + model_ans + self.bert_tokenizer.tokenizer.sep_token + ans
+                    pair = model_ans + self.bert_tokenizer.tokenizer.sep_token + ans
                     label = edu_ans["label"]
                     pairs.append(pair)
                     labels.append(label)
