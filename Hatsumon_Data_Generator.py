@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[83]:
 
 
 import random
@@ -14,7 +14,7 @@ import os
 import pandas as pd
 
 
-# In[2]:
+# In[84]:
 
 
 class HatsumonDataGenerator:
@@ -25,6 +25,7 @@ class HatsumonDataGenerator:
         self.bert_tokenizer = tokenizer
         self.json_path = path
         self.dataset = self.load_json_file(self.json_path)
+        self.num_cross_val = 5
         
     def load_json_file(self, path: str) -> dict:
         with open(path, "r") as j:
@@ -32,6 +33,9 @@ class HatsumonDataGenerator:
         return dataset
     
     def view_all_data(self, way_type: str) -> pd.DataFrame:
+        TUA_idx = np.zeros((self.num_cross_val, 1), dtype = str)
+        TUQ_idx = [[]] * self.num_cross_val   
+        
         question_numbers = []
         questions = []
         model_anss = []
@@ -39,36 +43,62 @@ class HatsumonDataGenerator:
         labels = []
         
         for study_number in self.dataset.keys():
-            for question_number in self.dataset[study_number].keys():
+            for q, question_number in enumerate(self.dataset[study_number].keys()):
                 edu_num = len(self.dataset[study_number][question_number]["edu_ans"])
-                q_numbert = study_number + "-" + question_number
+                q_number = study_number + "-" + question_number
                 question = self.dataset[study_number][question_number]["question"]
                 model_ans = self.dataset[study_number][question_number]["model_ans"]
-                
-                question_numbers.extend([q_numbert] * edu_num)
+
+                q_number_list = [q_number] * edu_num
                 questions.extend([question] * edu_num)
                 model_anss.extend([model_ans] * edu_num)
                 
-                for edu_ans in self.dataset[study_number][question_number]["edu_ans"]:
+                for i, edu_ans in enumerate(self.dataset[study_number][question_number]["edu_ans"]):
                     ans = edu_ans["ans"]
                     label = edu_ans["label"]
+                    q_number_list[i] += "-" + str(i)
                     edu_anss.append(ans)
-                    labels.append(label)
+                    labels.append(str(label))
+                    
+                TUA_idx = self.create_TUA_idx(TUA_idx, q_number_list)
+                TUQ_idx = self.create_TUQ_idx(TUQ_idx, q_number_list, q)
+                question_numbers.extend(q_number_list)
+                
                     
         pd_question_numbers = pd.DataFrame(np.array(question_numbers, dtype = str), columns=["Question number"])
         pd_questions = pd.DataFrame(np.array(questions, dtype = str), columns=["Question"])
         pd_model_anss = pd.DataFrame(np.array(model_anss, dtype = str), columns=["Model answer"])
         pd_edu_anss = pd.DataFrame(np.array(edu_anss, dtype = str), columns=["Edu answer"])
+        labels = self.replace_way_type(labels, way_type)
         pd_labels = pd.DataFrame(np.array(labels, dtype = str), columns=["Label"])
         
         pd_all_data = pd.concat([pd_question_numbers, pd_questions, pd_model_anss, pd_edu_anss, pd_labels], axis=1)
         
-        return pd_all_data
+        return pd_all_data, np.delete(TUA_idx, 0, 1).tolist(), TUQ_idx
+    
+    def create_TUA_idx(self, TUA_idx:np.ndarray, q_numbers:list):
+        
+        if len(q_numbers) < self.num_cross_val:
+            ignores = ["ignore"] * (self.num_cross_val - len(q_numbers))
+            q_numbers = q_numbers + ignores
+        
+        np_q_numbers = np.array(q_numbers, dtype=str).T.reshape(self.num_cross_val,1)
+        
+        TUA_idx = np.hstack((TUA_idx, np_q_numbers))
+            
+        return TUA_idx
+    
+    def create_TUQ_idx(self, TUQ_idx:list, q_numbers:list, q):
+        idx = TUQ_idx[q] + q_numbers
+        TUQ_idx[q] = idx
+        return TUQ_idx
+        
+        
                 
                 
             
     def get_TUA(self, way_type: str) -> list:
-        num_cross_val = 5
+        num_cross_val = self.num_cross_val
         train_pairs = np.zeros((num_cross_val, 1), dtype = str)
         train_labels = np.zeros((num_cross_val, 1), dtype = str)
         test_pairs = np.zeros((num_cross_val, 1), dtype = str)
@@ -83,8 +113,7 @@ class HatsumonDataGenerator:
                 labels = []
                 for edu_ans in self.dataset[study_number][question_number]["edu_ans"]:
                     ans = edu_ans["ans"]
-#                     pair = question + self.bert_tokenizer.tokenizer.sep_token + model_ans + self.bert_tokenizer.tokenizer.sep_token + ans
-                    pair = model_ans + self.bert_tokenizer.tokenizer.sep_token + ans
+                    pair = question + self.bert_tokenizer.tokenizer.sep_token + model_ans + self.bert_tokenizer.tokenizer.sep_token + ans
                     label = edu_ans["label"]
                     pairs.append(pair)
                     labels.append(label)
@@ -106,7 +135,7 @@ class HatsumonDataGenerator:
             
         
     def get_TUQ(self, way_type: str) -> list:
-        num_cross_val = 5
+        num_cross_val = self.num_cross_val
         train_pairs = np.zeros((num_cross_val, 1), dtype = str)
         train_labels = np.zeros((num_cross_val, 1), dtype = str)
         test_pairs = np.zeros((num_cross_val, 1), dtype = str)
@@ -123,8 +152,7 @@ class HatsumonDataGenerator:
                 labels = []
                 for edu_ans in self.dataset[study_number][question_number]["edu_ans"]:
                     ans = edu_ans["ans"]
-#                     pair = question + self.bert_tokenizer.tokenizer.sep_token + model_ans + self.bert_tokenizer.tokenizer.sep_token + ans
-                    pair = model_ans + self.bert_tokenizer.tokenizer.sep_token + ans
+                    pair = question + self.bert_tokenizer.tokenizer.sep_token + model_ans + self.bert_tokenizer.tokenizer.sep_token + ans
                     label = edu_ans["label"]
                     pairs.append(pair)
                     labels.append(label)
@@ -213,7 +241,7 @@ class HatsumonDataGenerator:
         return dataset
 
 
-# In[3]:
+# In[85]:
 
 
 def build_hatsumon_data(zyouhou1_path: str, tokenizer) -> HatsumonDataGenerator:
@@ -223,30 +251,9 @@ def build_hatsumon_data(zyouhou1_path: str, tokenizer) -> HatsumonDataGenerator:
     return generator
 
 
-# In[4]:
+# # In[86]:
 
 
 # path = "./zyouhou1_hatsumon.json"
 # zd = build_hatsumon_data(path, None)
-
-
-# In[5]:
-
-
-# a = zd.view_all_data("2-way")
-
-
-# In[7]:
-
-
-# pd.set_option("display.max_columns", 6)
-# pd.set_option("display.max_colwidth", 500)
-# pd.set_option('display.max_rows', 500)
-# print(a)
-
-
-# In[ ]:
-
-
-
 
