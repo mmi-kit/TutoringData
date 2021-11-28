@@ -80,53 +80,6 @@ kappa = 0.432653488509699
 異なる修飾|6|90個
 正解|7|181個
 
-
-# Usage
-
-本リポジトリの annotation_data/ に3人の評価者がアノテーションした結果がcsv形式で保存されています。
-
-クローンしたのちcreate_dataset_from_csv.pyを実行すると、annotation_data/　にあるアノテーション結果から、最終的な評価ラベルを付与した結果をjson形式で保存します。
-
-```bash
-git clone https://github.com/mmi-kit/TutoringData.git
-python create_dataset_from_csv.py
-Create json data from dir = ./annotation_data
-評価者の数 = 3
-評価対象の数 = 450
-評価カテゴリー数 = 7
-P_bar  = 0.5896296296296311
-Pe_bar  = 0.27668477366255145
-kappa = 0.432653488509699
-適度に一致
-Complete
-```
-
-保存されたjsonファイルは以下の形式でデータセットを格納しています。
-```bash
-{"Study1":
-    {"Question1":
-        {
-            "question": 　　　#発問
-            "model_ans":     #解答例
-            "edu_ans": [    #listで学習者の解答を格納
-                {
-                    "ans":    #解答例
-                    "label":  #評価ラベル
-                },
-                {
-                    "ans":    #解答例
-                    "label":  #評価ラベル
-                },
-                {
-                    "ans":    #解答例
-                    "label":  #評価ラベル
-                },
-            ]
-
-        }
-    }
-}
-```
 # Test of unseen answers (TUA)
 Test of unseen answers (TUA)では学習データに含まれない解答例に対する評価精度を検証するテスト形式です。本リポジトリのHatsumonDataGeneratorではTUAをクロスバリデーション(fold = 5)で行うためにデータセットを返す関数が用意されています。
 
@@ -149,34 +102,9 @@ TUQを行う時の学習データサイズとテストデータサイズを以�
 |:---:|:---:|:---:|
 || 360| 90|
 
-# 評価方法
-本データセットでは７つの評価ラベルを各発問に付与し、解答のより詳細な評価を行うことを目的としたデータセットですが、単に正解か不正解かの2段階での評価や、正解か部分的に正解、不正解、ドメイン外の段階での評価を行うためのデータを返す関数を用意しています。
-以下に各ラベルの対応関係を示します。使用方法は次のHatsumon_Data_Generatorを参照してください。
-
+# 評価形式
+本データセットでは７つの評価ラベルを各発問に付与し、解答のより詳細な評価を行うことを目的としたデータセットですが、単に正解か不正解かの2段階での評価や、正解か部分的に正解、不正解、ドメイン外の段階での評価を行います。
+以下に各ラベルの対応関係を示します。
 <img width="862" alt="評価ラベルの対応関係" src="https://user-images.githubusercontent.com/49631708/136557513-55a07047-ec35-4d83-ba65-8da3079f5b57.png">
 
 
-
-
-
-
-# Hatsumon_Data_Generator
-モデルの学習を行うコード内でHatsumonDataGeneratorを呼び出し、学習したい形式のデータセットを呼び出します。なお学習データは、発問+模範解答+解答例の３つ組をBertJapaneseTokenizerでエンコードされて帰ってきます。
-```bash
-from Hatsumon_Data_Generator import build_hatsumon_data
-from tokenizer import build_bert_tokenizer
-
-bert_tokenizer = build_bert_tokenizer(bert_name)
-dataGenerator = build_hatsumon_data("./.../zyouhou1_hatsumon.json", bert_tokenizer)
-
-train_dataset, test_dataset = dataGenerator.get_TUA("7-way")
-for trainset, testset in zip(train_dataset, test_dataset)
-   for epoch in epo_iterator:
-        train_data, val_data = split_train_val_dataset(trainset, train_size))
-        train_dataloader = get_dataloader(train_data, batch_size)
-        val_dataloader = get_dataloader(val_data, batch_size)
-                    
-        train_loss = train(model, train_dataloader, optimizer, lossfunc, device)
-        val_loss = validation(model, val_dataloader, lossfunc, device)
-        report = test(model, testset, device)
-```
